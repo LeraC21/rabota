@@ -1,0 +1,20 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+import subprocess
+
+def run_script(execution_date):
+    command = f"python /usr/local/airflow/dags/script.py {execution_date.strftime('%Y-%m-%d')}"
+    subprocess.run(command, shell=True)
+
+with DAG(
+    'weekly_aggregation',
+    default_args={
+        'owner': 'airflow',
+        'start_date': datetime(2024, 9, 16),
+        'retries': 1,
+        'retry_delay': timedelta(minutes=5),
+    },
+    schedule_interval='@daily',
+    catchup=False,
+) as dag:
