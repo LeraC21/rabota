@@ -1,0 +1,55 @@
+import pandas as pd
+import os
+import sys
+from datetime import datetime, timedelta
+
+def process_logs(target_date):
+    # Определяем диапазон дат
+    end_date = datetime.strptime(target_date, '%Y-%m-%d')
+    start_date = end_date - timedelta(days=7)
+
+    # Инициализация DataFrame для хранения агрегированных данных
+    aggregated_data = {}
+
+    # Обработка CSV файлов в директории input
+    for single_date in pd.date_range(start=start_date, end=end_date - timedelta(days=1)):
+        file_path = f"input/{single_date.strftime('%Y-%m-%d')}.csv"
+
+        if os.path.isfile(file_path):
+            df = pd.read_csv(file_path)
+
+            for _, row in df.iterrows():
+                email = row['email']
+                action = row['action']
+
+                if email not in aggregated_data:
+                    aggregated_data[email] = {'create_count': 0, 'read_count': 0, 'update_count': 0, 'delete_count': 0}
+
+                if action == "CREATE":
+                    aggregated_data[email]['create_count'] += 1
+                elif action == "READ":
+                    aggregated_data[email]['read_count'] += 1
+                elif action == "UPDATE":
+                    aggregated_data[email]['update_count'] += 1
+                elif action == "DELETE":
+                    aggregated_data[email]['delete_count'] += 1
+
+    # Формируем итоговый DataFrame
+    result_df = pd.DataFrame.from_dict(aggregated_data, orient='index').reset_index()
+    result_df.rename(columns={'index': 'email'}, inplace=True)
+
+    # Запись результата в файл
+    output_file_path = f"output/{target_date}.csv"
+    result_df.to_csv(output_file_path, index=False)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <YYYY-mm-dd>")
+        sys.exit(1)
+    
+    target_date = sys.argv[1]
+    try:
+        datetime.strptime(target_date, '%Y-%m-%d')  # Проверка формата даты
+        process_logs(target_date)
+    except ValueError:
+        print("Invalid date format. Please use YYYY-mm-dd.")
